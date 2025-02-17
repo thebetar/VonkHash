@@ -3,9 +3,11 @@
 #include <math.h>
 #include <string.h>
 
+// Increase to reduce overlap, decrease to increase performance
 #define HASH_SIZE 64
 
-const char HEX_DIGITS[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+// Define hexadecimal digits
+const char HEX_DIGITS[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
 
 // Constants for the LCG (a * x + c) % m
 const unsigned long long A = 256;        // 2^8
@@ -42,22 +44,22 @@ char *hash_str(char *input_str)
         // Generate random number to rotate
         const unsigned int random_rotate = semi_random_number(hash_number, 2);
 
+        // XOR with left-shifted hash (XOR because it is faster than addition)
+        hash_number ^= char_code_64;
+
         // Apply bitwise operations
         if (oscilator)
         {
-            // Rotate right 8 bits
+            // Rotate right random bits
             hash_number = (hash_number >> random_rotate) | (hash_number << (64 - random_rotate));
             oscilator = 0;
         }
         else
         {
-            // Rotate left 4 bits
+            // Rotate left random bits
             hash_number = (hash_number << random_rotate) | (hash_number >> (64 - random_rotate));
             oscilator = 1;
         }
-
-        // XOR with left-shifted hash
-        hash_number ^= char_code_64;
 
         i++;
     }
@@ -65,7 +67,7 @@ char *hash_str(char *input_str)
     for (i = 0; i < HASH_SIZE; i++)
     {
         hash[i] = HEX_DIGITS[hash_number % 16];
-        hash_number = hash_number * 2 / 3;
+        hash_number = (hash_number >> 1) + (hash_number >> 2);
     }
     hash[HASH_SIZE] = '\0';
 
@@ -101,6 +103,27 @@ int tests()
     test_str = "Long string to test if it works correct, lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec auctor, nunc nec ultricies ultricies, nunc nunc.";
     test_hash = hash_str(test_str);
     printf("Hash: %s\n", test_hash);
+
+    // 100 paragraphs of lorem ipsum to test speed
+    FILE *file = fopen("data/lorem_ipsum.txt", "r");
+
+    if (file == NULL)
+    {
+        printf("Error opening file!\n");
+        return 0;
+    }
+
+    // Allocate memory for the string
+    test_str = malloc(64000 * sizeof(char));
+
+    // Define line to read
+    char line[256];
+
+    // Read lines until the end of file
+    while (fgets(line, sizeof(line), file))
+    {
+        strcat(test_str, line);
+    }
 
     return 1;
 }
